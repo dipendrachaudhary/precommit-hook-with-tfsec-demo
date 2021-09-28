@@ -1,0 +1,257 @@
+---
+checks:
+- code: CUS001
+  description: Ensure the ami and azs 
+  impact: checks the ami and azs
+  resolution: put the given ami and azs ap-south-1a and ap-south-1b
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_instance
+  severity: HIGH
+  matchSpec:
+    action: or
+    predicateMatchSpec:
+      - action: and
+        predicateMatchSpec:
+          - name: ami
+            action: contains
+            value: ami-005e54dee72cc1d00
+          - name: availability_zone
+            action: isAny
+            value:
+              - ap-south-1a
+              - ap-south-1b
+  errorMessage: The required ami or azs was missing
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: CUS002
+  description: put the instance type t2.micro
+  impact: instance type t2.micro
+  resolution: put the instance type t2.micro
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_instance
+  severity: LOW
+  matchSpec:
+    action: and 
+    predicateMatchSpec:
+          - name: instance_type
+            action: contains
+            value: t2.micro
+  errorMessage: The required CostCentre tag was missing
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: AMI001
+  description: AMIs should not be unencrypted
+  impact: Unencrypted AMI
+  resolution: Encrypt AMI
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_ami
+  severity: ERROR
+  matchSpec:
+    action: isPresent
+    name: ebs_block_device
+    subMatch :
+      action : and
+      predicateMatchSpec :
+        - action : isPresent
+          name : encrypted
+  errorMessage: The AMI should be encrypted
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: EBS01
+  description: EBS should be encrypted
+  impact: EBS should be encrypted
+  resolution: Encrypt the EBS
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_ebs_volume
+  severity: ERROR
+  matchSpec:
+    name: aws_ebs_encryption_by_default
+    action: requiresPresence
+    value: true
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: VPCFLOW001
+  description: VPC flow logging should be enabled for all VPCs
+  impact: VPC flow logging should be enabled for all VPCs
+  resolution: VPC flow logging should be enabled for all VPCs
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_vpc
+  severity: ERROR
+  matchSpec:
+    name: aws_flow_log
+    action: requiresPresence
+  errorMessage: It has unauthorized access
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: S3Bucket001
+  description: Access logging should be enabled for S3 bucket
+  impact: Access logging should be enabled for S3 bucket in order to access the loggin
+  resolution: Enable the access login in S3 bucket
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_s3_bucket
+  severity: ERROR
+  matchSpec:
+    name: logging
+    action: isPresent
+  errorMessage: The required access logging was missing
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: S3Bucket002
+  description: S3 buckets should not be unencrypted
+  impact: S3 bucket should be encypted to ensure the security
+  resolution: encrypt the S3 bucket
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_s3_bucket
+  severity: ERROR
+  matchSpec:
+    name: server_side_encryption_configuration
+    action: isPresent
+  errorMessage: The required s3 bucket encryption is missing
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: IAM-instance001
+  description: IAM instance roles should be used to provision access to AWS resources
+  impact: By provising IAM instance roles, you can access to AWS resources
+  resolution: Add the Cost tag
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_iam_instance_profile
+  severity: ERROR
+  matchSpec:
+    name: role
+    action: isPresent
+  errorMessage: role is not present
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: IAM002
+  description: IAM policies should be attached to groups and roles only
+  impact: IAM policies should be attached to groups and roles only
+  resolution: Attach to group and roles only
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_iam_group_policy_attachment
+  severity: ERROR
+  matchSpec:
+    name: policy_arn
+    action: isPresent
+  errorMessage: policy_arn is not attached
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: SG001
+  description: Security Groups should not have unrestricted inbound or outbound access
+  impact: Security Groups should not have unrestricted inbound or outbound access
+  resolution: Security group should not have unauthorized access
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_security_group_rule
+  severity: ERROR
+  matchSpec:
+    action: and
+    predicateMatchSpec:
+      - action: and
+        predicateMatchSpec:
+          - action: contains
+            name: cidr_blocks
+            value: 0.0.0.0/0
+          - action: isAny
+            name: type
+            value:
+              - ingress
+              - egress
+  errorMessage: It has unauthorized access
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+- code: SG002
+  description: The ingress ports should not have unrestricted access
+  impact: The ingress ports should not have unrestricted access
+  resolution: Non HTTP/HTTPS ports should not have unrestricted access
+  requiredTypes:
+  - resource
+  requiredLabels:
+  - aws_security_group_rule
+  severity: ERROR
+  matchSpec:
+      action : or
+      predicateMatchSpec:
+        - action: and
+          predicateMatchSpec:
+            - action: notContains
+              name: cidr_blocks
+              value: 0.0.0.0/0
+            - action: equals
+              name: type
+              value: ingress
+            - action: isAny
+              name: from_port
+              value:
+                - 80
+                - 443
+                - 21
+                - 22
+                - 23
+                - 1443
+                - 3389
+                - 5900
+                - 5800
+                - 139
+                - 27017
+                - 53
+                - 137
+                - 1521
+                - 5432
+                - 3200
+                - 25
+                - 1434 
+            - action: isAny
+              name: to_port
+              value:
+                - 80
+                - 443
+                - 21
+                - 22
+                - 23
+                - 1443
+                - 3389
+                - 5900
+                - 5800
+                - 139
+                - 27017
+                - 53
+                - 137
+                - 1521
+                - 5432
+                - 3200
+                - 25
+                - 1434
+  errorMessage: It has unauthorized access
+  relatedLinks:
+  - http://internal.acmecorp.com/standards/aws/tagging.html
+
+
